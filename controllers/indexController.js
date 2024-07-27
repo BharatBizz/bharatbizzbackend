@@ -11,12 +11,12 @@ const User=require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const History = require('../models/history');
 const WithdrawalRequest = require('../models/withDrawRequest');
-// const WithdrawalRequest = require('../models/withDrawRequest');
+const ActivePackage = require('../models/activePackage');
 
 exports.registerInvestor = catchAsyncErrors(async (req, res, next) => {
-    const { userId, email, password } = req.body;
+    const { userId, email, password,referredByUserID } = req.body;
 
-    if (!userId || !email || !password) {
+    if (!userId || !email || !password || !referredByUserID) {
         return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
@@ -28,7 +28,8 @@ exports.registerInvestor = catchAsyncErrors(async (req, res, next) => {
     const user = await User.create({
         userId,
         email,
-        password
+        password,
+        referredByUserID
     });
 
     // Send response
@@ -188,11 +189,66 @@ exports.requestWithdraw = catchAsyncErrors(async (req, res, next) => {
         await newRequest.save();
 
         // Update user's wallet
-        user.wallet -= amount;
         await user.save();
 
         res.status(201).json({ message: 'Withdrawal request submitted successfully', request: newRequest });
     } catch (error) {
         next(error); // Pass error to error handling middleware
+    }
+});
+
+
+exports.saveSelectedPackage = catchAsyncErrors(async (req, res, next) => {
+    const { userId, amount ,referredByUserID} = req.body;
+
+    if (!userId || !amount) {
+        return res.status(400).json({ success: false, message: "User ID and package amount are required" });
+    }
+
+    // Find the user
+    const user = await User.findOne({ userId });
+
+    if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Check if user has enough balance
+    if (user.wallet < amount) {
+        return res.status(400).json({ success: false, message: "Insufficient funds" });
+    }
+
+    // Deduct amount from user's wallet
+    user.wallet -= amount;
+
+    // Save user's updated wallet balance
+    await user.save();
+
+    // Save the active package
+    const activePackage = await ActivePackage.create({
+        userId,
+        packageAmount:amount,
+        referredByUserID
+    });
+
+    // Send response
+    res.status(201).json({ success: true, message: "Package selected successfully", activePackage });
+});
+
+
+exports.getActivePackages = catchAsyncErrors(async (req, res, next) => {
+    const { userId } = req.params;
+
+    if (!userId) {
+        return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    try {
+        const activePackages = await ActivePackage.find({ userId });
+        if (!activePackages) {
+            return res.status(404).json({ success: false, message: "No active packages found for this user" });
+        }
+        res.status(200).json({ success: true, data: activePackages });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
 });

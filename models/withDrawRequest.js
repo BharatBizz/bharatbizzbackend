@@ -2,8 +2,7 @@ const mongoose = require('mongoose');
 
 const withdrawalRequestSchema = new mongoose.Schema({
     userId: {
-        type:String,
-        ref: 'User',
+        type: String, // Use String to match userId from User schema
         required: true
     },
     amount: {
