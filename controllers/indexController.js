@@ -10,6 +10,8 @@ const {sendmail} =require('../utils/nodemailer')
 const User=require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const History = require('../models/history');
+const WithdrawalRequest = require('../models/withDrawRequest');
+// const WithdrawalRequest = require('../models/withDrawRequest');
 
 exports.registerInvestor = catchAsyncErrors(async (req, res, next) => {
     const { userId, email, password } = req.body;
@@ -86,28 +88,34 @@ exports.currentInvestor = catchAsyncErrors(async (req, res, next) => {
     }
 });
 
-
 exports.depositMoney = catchAsyncErrors(async (req, res, next) => {
-    const { amount } = req.body.amount; // Accessing the nested amount value
+    // Extract amount from request body
+    const { amount } = req.body;
     const userId = req.params.userId;
 
-    // Convert the amount to a number to avoid appending strings
+    // Convert the amount to a number
     const parsedAmount = parseFloat(amount);
 
-    if (isNaN(parsedAmount)) {
+    // Validate the amount
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
         return res.status(400).json({ success: false, message: 'Invalid amount value' });
+    }
+    if (parsedAmount < 2500) {
+        return res.status(400).json({ success: false, message: 'Amount must be at least Rs 2500' });
     }
 
     try {
+        // Find the user by userId
         const user = await User.findOne({ userId });
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Directly setting the wallet amount to the provided value
-        user.wallet+= parsedAmount;
+        // Update the user's wallet
+        user.wallet += parsedAmount;
         await user.save();
 
+        // Log the deposit in history
         const history = new History({
             userId,
             amount: parsedAmount,
@@ -115,8 +123,10 @@ exports.depositMoney = catchAsyncErrors(async (req, res, next) => {
         });
         await history.save();
 
+        // Respond with success
         res.status(200).json({ success: true, wallet: user.wallet, history });
     } catch (error) {
+        // Pass errors to the error handler middleware
         next(error);
     }
 });
@@ -148,3 +158,41 @@ exports.getHistory = catchAsyncErrors(async (req, res, next) => {
     }
 });
 
+exports.requestWithdraw = catchAsyncErrors(async (req, res, next) => {
+    try {
+        const { userId, amount } = req.body;
+
+        // Validate input
+        if (!userId || !amount) {
+            return res.status(400).json({ message: 'User ID and amount are required' });
+        }
+
+        // Check if user exists
+        const user = await User.findOne({userId});
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if user has sufficient funds
+        if (user.wallet < amount) {
+            return res.status(400).json({ message: 'Insufficient funds' });
+        }
+
+        // Create withdrawal request
+        const newRequest = new WithdrawalRequest({
+            userId,
+            amount,
+            status: 'pending'
+        });
+
+        await newRequest.save();
+
+        // Update user's wallet
+        user.wallet -= amount;
+        await user.save();
+
+        res.status(201).json({ message: 'Withdrawal request submitted successfully', request: newRequest });
+    } catch (error) {
+        next(error); // Pass error to error handling middleware
+    }
+});

@@ -9,7 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const {sendmail} =require('../utils/nodemailer')
 const User=require('../models/userModel');
 const jwt = require('jsonwebtoken');
-
+const History=require('../models/history')
 
 exports.registerAdmin = catchAsyncErrors(async (req, res, next) => {
     try {
@@ -75,18 +75,43 @@ exports.currentAdmin = catchAsyncErrors(async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decoded.id;
 
-        const admin = await Admin.findById(userId).exec();
+        const user = await Admin.findById(userId).exec();
 
-        if (!admin) {
+        if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
-        admin.isAuth = true;
-        admin.lastLogin = new Date();
-        await admin.save();
-        res.json({ success: true, admin });
+        user.isAuth = true;
+        user.lastLogin = new Date();
+        await user.save();
+        res.json({ success: true, user });
     } catch (error) {
         console.error('Error fetching current admin:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
+exports.getAllTransactions = catchAsyncErrors(async (req, res, next) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+
+        const transactions = await History.find()
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        const total = await History.countDocuments();
+
+        res.status(200).json({
+            success: true,
+            history: transactions,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+});
