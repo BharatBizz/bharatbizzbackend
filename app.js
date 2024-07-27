@@ -29,7 +29,16 @@ exports.instance = new Razorpay({
     key_id: process.env.RAZORPAY_API_KEY,
     key_secret: process.env.RAZORPAY_APT_SECRET,
 });
-
+app.use(session({
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+    resave: true,
+    saveUninitialized: false,
+    secret: process.env.EXPRESS_SECRET,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
+        sameSite: 'none'
+    }
+}));
 app.use(cors(corsOptions));
 
 app.use(bodyParser.urlencoded({ extended: true }));
