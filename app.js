@@ -19,7 +19,7 @@ require('./models/config');
 
 // CORS configuration
 const corsOptions = {
-    origin:['https://bharatbizz.vercel.app'],
+    origin:['https://bharatbizz.vercel.app','http://localhost:5173'],
     credentials: true
 };
 // Enable CORS

@@ -252,3 +252,39 @@ exports.getActivePackages = catchAsyncErrors(async (req, res, next) => {
         return res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
 });
+
+exports.userSendMail = catchAsyncErrors(async (req, res, next) => {
+    console.log(req.body)
+    const user = await User.findOne({ email: req.body.email }).exec()
+    if (!user) {
+        return next(
+            new ErrorHandler("User Not Found with this email address", 404)
+        )
+    }
+    const url1 = `${req.protocol}://${req.get("host")}/user/forget-link/${user._id}`
+    const url = `http://localhost:5173/forget-link/${user._id}`
+    sendmail(req, url1, res, url, next)
+    res.json({ user, url1 })
+    user.resetPassword = "1"
+    await user.save()
+})
+
+
+exports.userforgetlink = catchAsyncErrors(async (req, res, next) => {
+    const user = await User.findById(req.params.id).exec();
+    console.log(req.body.password)
+    if (!user) {
+        return next(new ErrorHandler("User Not Found with this email address", 404));
+    }
+
+    if (user.resetPassword === "1") {
+        user.resetPassword = "0";
+        user.password = req.body.password;
+    } else {
+        return next(new ErrorHandler("Link Expired", 404));
+    }
+
+    await user.save();
+
+    res.status(200).json({ message: "Password Updated Successfully" });
+});
