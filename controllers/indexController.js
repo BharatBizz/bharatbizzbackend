@@ -32,7 +32,6 @@ exports.registerInvestor = catchAsyncErrors(async (req, res, next) => {
         referredByUserID
     });
 
-    // Send response
     res.status(201).json({ success: true, message: "Investor registered successfully", user });
 });
 
@@ -88,6 +87,24 @@ exports.currentInvestor = catchAsyncErrors(async (req, res, next) => {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
+
+exports.logout = catchAsyncErrors(async (req, res, next) => {
+    res.clearCookie("token")
+    res.json({ message: "Successfully Signout" })
+})
+
+exports.updatedUser =catchAsyncErrors( async (req, res, next) => {
+    try {
+      const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.status(200).json(updatedUser);
+    } catch (error) {
+      next(error);
+    }
+  });
+
 
 exports.depositMoney = catchAsyncErrors(async (req, res, next) => {
     // Extract amount from request body

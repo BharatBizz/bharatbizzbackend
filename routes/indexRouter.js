@@ -1,7 +1,7 @@
 const express=require('express')
 const router=express.Router()
 
-const {registerInvestor, loginInvestor, currentInvestor, depositMoney,getHistory, requestWithdraw, saveSelectedPackage, getActivePackages, userSendMail, userforgetlink}=require('../controllers/indexController')
+const {registerInvestor, loginInvestor, currentInvestor, depositMoney,getHistory, requestWithdraw, saveSelectedPackage, getActivePackages, userSendMail, userforgetlink, updateProfile, updatedUser, logout}=require('../controllers/indexController')
 const { isAuthenticated } = require('../middlewares/auth')
 const { getReferredUsers } = require('../controllers/adminController')
 
@@ -26,5 +26,9 @@ router.get('/getActivePackages/:userId',isAuthenticated, getActivePackages);
 router.post('/send-mail', userSendMail)
 
 router.post('/forget-link/:id', userforgetlink)
+
+router.put('/updateProfile/:id',isAuthenticated,updatedUser)
+
+router.get('/logout', logout)
 
 module.exports=router
