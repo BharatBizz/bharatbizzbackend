@@ -204,3 +204,9 @@ exports.getReferredUsers = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' }); // Send error response
     }
 };
+
+
+exports.adminLogout = catchAsyncErrors(async (req, res, next) => {
+    res.clearCookie("token")
+    res.json({ message: "Successfully Signout" })
+})
