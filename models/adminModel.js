@@ -8,6 +8,10 @@ const adminSchema = new mongoose.Schema({
         enum: ['Admin'],
         default: "Admin"
     },
+    userId:{
+        type:String,
+        default:"BHARATBIZZ1234"
+    },
     otp: {
         type: Number,
         default: -1
