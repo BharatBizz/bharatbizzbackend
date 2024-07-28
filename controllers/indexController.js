@@ -262,7 +262,7 @@ exports.userSendMail = catchAsyncErrors(async (req, res, next) => {
         )
     }
     const url1 = `${req.protocol}://${req.get("host")}/user/forget-link/${user._id}`
-    const url = `http://localhost:5173/forget-link/${user._id}`
+    const url = `https://bharatbizz.vercel.app/forget-link/${user._id}`
     sendmail(req, url1, res, url, next)
     res.json({ user, url1 })
     user.resetPassword = "1"
